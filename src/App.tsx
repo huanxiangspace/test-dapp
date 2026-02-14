@@ -3,8 +3,8 @@ import { Aptos, AptosConfig, Network, SignedTransaction, Ed25519Account, Transac
 import './App.css';
 
 // Custom Network Configuration
-const CUSTOM_NODE_URL = "http://43.156.137.243:8080/v1";
-const CHAIN_ID = 67;
+const CUSTOM_NODE_URL = "http://120.26.182.36:8080/v1";
+const CHAIN_ID = 164;
 
 const aptosConfig = new AptosConfig({ 
   network: Network.CUSTOM,
