@@ -158,6 +158,164 @@ const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
   );
 };
 
+const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: { 
+  submitTransaction: (data: any) => Promise<string>, 
+  validators: any[], 
+  fetching: boolean, 
+  fetchValidators: () => void 
+}) => {
+  const [validator, setValidator] = useState("");
+  const [amount, setAmount] = useState("100000000"); // Default 1 APT
+
+  useEffect(() => {
+    if (validators.length > 0 && !validator) {
+      setValidator(validators[0].addr);
+    }
+  }, [validators]);
+
+  const handleExecute = async () => {
+    if (!validator) throw new Error("Please select a validator.");
+    let val: bigint;
+    try {
+      val = BigInt(amount);
+    } catch (e) {
+      throw new Error("Invalid amount.");
+    }
+    if (val <= 0n) throw new Error("Amount must be positive.");
+
+    return await submitTransaction({
+      function: "0x1::delegation_pool::add_stake",
+      functionArguments: [validator, val],
+      typeArguments: [],
+    });
+  };
+
+  return (
+    <ActionCard 
+      title="Stake APT (Delegation)" 
+      description="Select a validator node and delegate your APT to start earning rewards."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+          <label>Select Node (Validator):</label>
+          <button 
+            onClick={(e) => { e.preventDefault(); fetchValidators(); }} 
+            style={{ padding: '2px 8px', fontSize: '0.8em', height: 'auto' }}
+            disabled={fetching}
+          >
+            {fetching ? "..." : "Refresh"}
+          </button>
+        </div>
+        <select 
+          value={validator} 
+          onChange={(e) => setValidator(e.target.value)}
+        >
+          <option value="">-- Select a Node --</option>
+          {validators.map((v: any) => (
+            <option key={v.addr} value={v.addr}>
+              {v.addr.substring(0, 14)}... (Power: {v.voting_power})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group" style={{ marginTop: '15px' }}>
+        <label>Amount (Octas):</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input 
+            type="number" 
+            value={amount} 
+            onChange={(e) => setAmount(e.target.value)} 
+            style={{ flex: 1 }}
+          />
+          <div style={{ minWidth: '80px', textAlign: 'right', fontWeight: 'bold' }}>
+            {(parseInt(amount || "0") / 100_000_000).toFixed(2)} APT
+          </div>
+        </div>
+      </div>
+    </ActionCard>
+  );
+};
+
+const UnlockStake = ({ submitTransaction, validators }: { 
+  submitTransaction: (data: any) => Promise<string>, 
+  validators: any[] 
+}) => {
+  const [validator, setValidator] = useState("");
+  const [amount, setAmount] = useState("100000000");
+
+  const handleExecute = async () => {
+    if (!validator) throw new Error("Please select a validator.");
+    return await submitTransaction({
+      function: "0x1::delegation_pool::unlock",
+      functionArguments: [validator, BigInt(amount)],
+      typeArguments: [],
+    });
+  };
+
+  return (
+    <ActionCard 
+      title="Unstake APT (Unlock)" 
+      description="Unstake your APT. It will enter a lockup period before it can be withdrawn."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <label>Validator Node:</label>
+        <select value={validator} onChange={(e) => setValidator(e.target.value)}>
+          <option value="">-- Select a Node --</option>
+          {validators.map((v: any) => (
+            <option key={v.addr} value={v.addr}>{v.addr.substring(0, 14)}...</option>
+          ))}
+        </select>
+      </div>
+      <div className="form-group">
+        <label>Amount to Unstake (Octas):</label>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </div>
+    </ActionCard>
+  );
+};
+
+const WithdrawStake = ({ submitTransaction, validators }: { 
+  submitTransaction: (data: any) => Promise<string>, 
+  validators: any[] 
+}) => {
+  const [validator, setValidator] = useState("");
+  const [amount, setAmount] = useState("100000000");
+
+  const handleExecute = async () => {
+    if (!validator) throw new Error("Please select a validator.");
+    return await submitTransaction({
+      function: "0x1::delegation_pool::withdraw",
+      functionArguments: [validator, BigInt(amount)],
+      typeArguments: [],
+    });
+  };
+
+  return (
+    <ActionCard 
+      title="Withdraw APT" 
+      description="Withdraw your unlocked APT back to your wallet."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <label>Validator Node:</label>
+        <select value={validator} onChange={(e) => setValidator(e.target.value)}>
+          <option value="">-- Select a Node --</option>
+          {validators.map((v: any) => (
+            <option key={v.addr} value={v.addr}>{v.addr.substring(0, 14)}...</option>
+          ))}
+        </select>
+      </div>
+      <div className="form-group">
+        <label>Amount to Withdraw (Octas):</label>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </div>
+    </ActionCard>
+  );
+};
+
 // --- Main App Component ---
 
 function App() {
@@ -165,6 +323,30 @@ function App() {
   const [derivedAddress, setDerivedAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [networkInfo, setNetworkInfo] = useState<any>(null);
+
+  // Staking Data
+  const [validators, setValidators] = useState<any[]>([]);
+  const [fetchingValidators, setFetchingValidators] = useState(false);
+
+  const fetchValidators = async () => {
+    setFetchingValidators(true);
+    try {
+      const resource = await aptos.getAccountResource({
+        accountAddress: "0x1",
+        resourceType: "0x1::stake::ValidatorSet",
+      });
+      const activeValidators = (resource as any).active_validators || [];
+      setValidators(activeValidators);
+    } catch (e) {
+      console.error("Error fetching validators:", e);
+    } finally {
+      setFetchingValidators(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchValidators();
+  }, []);
 
   const getAccountFromMnemonic = () => {
     try {
@@ -290,9 +472,23 @@ function App() {
         {/* 2. Actions List */}
         <div style={{ width: '100%', maxWidth: '800px' }}>
           <h3>2. Execute Action</h3>
+          
           <TransferAptos submitTransaction={submitTransaction} />
           <RegisterCoin submitTransaction={submitTransaction} />
           <TransferCoin submitTransaction={submitTransaction} />
+          
+          <div style={{ margin: '40px 0 20px 0', borderTop: '2px solid #ddd', paddingTop: '20px' }}>
+            <h3 style={{ color: '#2563eb' }}>Staking & Rewards</h3>
+          </div>
+
+          <UnlockStake submitTransaction={submitTransaction} validators={validators} />
+          <WithdrawStake submitTransaction={submitTransaction} validators={validators} />
+          <Stake 
+            submitTransaction={submitTransaction} 
+            validators={validators} 
+            fetching={fetchingValidators}
+            fetchValidators={fetchValidators}
+          />
         </div>
 
         {/* Network Info */}

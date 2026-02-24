@@ -60,6 +60,7 @@ body {
 
 input[type="text"],
 input[type="number"],
+select,
 textarea {
   width: 100%;
   padding: 10px 12px;
@@ -74,6 +75,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: #2563eb;
