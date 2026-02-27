@@ -158,6 +158,58 @@ const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
   );
 };
 
+const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () => void }) => {
+  const [amount, setAmount] = useState("1000000000"); // Default 10 APT
+
+  const handleExecute = async () => {
+    if (!address) throw new Error("No address derived.");
+    
+    const faucetUrl = `http://120.26.182.36:8081/mint?amount=${amount}&address=${address}`;
+    const response = await fetch(faucetUrl, { method: 'POST' });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Faucet failed: ${errorText || response.statusText}`);
+    }
+    
+    // Faucet usually returns transaction hashes as JSON array or text
+    const data = await response.text();
+    console.log("Faucet response:", data);
+    
+    // Refresh balance
+    onSuccess();
+    
+    return "Faucet request submitted successfully.";
+  };
+
+  return (
+    <ActionCard 
+      title="Aptos Faucet" 
+      description="Get test APT for your account from the network faucet."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <label>Target Address:</label>
+        <input type="text" value={address || ""} disabled style={{ backgroundColor: '#f5f5f5' }} />
+      </div>
+      <div className="form-group">
+        <label>Amount (Octas):</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input 
+            type="number" 
+            value={amount} 
+            onChange={(e) => setAmount(e.target.value)} 
+            style={{ flex: 1 }}
+          />
+          <div style={{ minWidth: '80px', textAlign: 'right', fontWeight: 'bold' }}>
+            {(parseInt(amount || "0") / 100_000_000).toFixed(2)} APT
+          </div>
+        </div>
+      </div>
+    </ActionCard>
+  );
+};
+
 const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: { 
   submitTransaction: (data: any) => Promise<string>, 
   validators: any[], 
@@ -169,7 +221,7 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
 
   useEffect(() => {
     if (validators.length > 0 && !validator) {
-      setValidator(validators[0].addr);
+      setValidator(validators[0].pool_addr);
     }
   }, [validators]);
 
@@ -213,8 +265,8 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
         >
           <option value="">-- Select a Node --</option>
           {validators.map((v: any) => (
-            <option key={v.addr} value={v.addr}>
-              {v.addr.substring(0, 14)}... (Power: {v.voting_power})
+            <option key={v.pool_addr} value={v.pool_addr}>
+              {v.pool_addr.substring(0, 14)}... (Power: {v.voting_power})
             </option>
           ))}
         </select>
@@ -245,6 +297,12 @@ const UnlockStake = ({ submitTransaction, validators }: {
   const [validator, setValidator] = useState("");
   const [amount, setAmount] = useState("100000000");
 
+  useEffect(() => {
+    if (validators.length > 0 && !validator) {
+      setValidator(validators[0].pool_addr);
+    }
+  }, [validators]);
+
   const handleExecute = async () => {
     if (!validator) throw new Error("Please select a validator.");
     return await submitTransaction({
@@ -261,11 +319,11 @@ const UnlockStake = ({ submitTransaction, validators }: {
       onExecute={handleExecute}
     >
       <div className="form-group">
-        <label>Validator Node:</label>
+        <label>Validator Node (Pool Address):</label>
         <select value={validator} onChange={(e) => setValidator(e.target.value)}>
           <option value="">-- Select a Node --</option>
           {validators.map((v: any) => (
-            <option key={v.addr} value={v.addr}>{v.addr.substring(0, 14)}...</option>
+            <option key={v.pool_addr} value={v.pool_addr}>{v.pool_addr.substring(0, 14)}...</option>
           ))}
         </select>
       </div>
@@ -284,6 +342,12 @@ const WithdrawStake = ({ submitTransaction, validators }: {
   const [validator, setValidator] = useState("");
   const [amount, setAmount] = useState("100000000");
 
+  useEffect(() => {
+    if (validators.length > 0 && !validator) {
+      setValidator(validators[0].pool_addr);
+    }
+  }, [validators]);
+
   const handleExecute = async () => {
     if (!validator) throw new Error("Please select a validator.");
     return await submitTransaction({
@@ -300,11 +364,11 @@ const WithdrawStake = ({ submitTransaction, validators }: {
       onExecute={handleExecute}
     >
       <div className="form-group">
-        <label>Validator Node:</label>
+        <label>Validator Node (Pool Address):</label>
         <select value={validator} onChange={(e) => setValidator(e.target.value)}>
           <option value="">-- Select a Node --</option>
           {validators.map((v: any) => (
-            <option key={v.addr} value={v.addr}>{v.addr.substring(0, 14)}...</option>
+            <option key={v.pool_addr} value={v.pool_addr}>{v.pool_addr.substring(0, 14)}...</option>
           ))}
         </select>
       </div>
@@ -336,7 +400,26 @@ function App() {
         resourceType: "0x1::stake::ValidatorSet",
       });
       const activeValidators = (resource as any).active_validators || [];
-      setValidators(activeValidators);
+      
+      // Fetch pool addresses for each validator
+      const validatorsWithPools = await Promise.all(activeValidators.map(async (v: any) => {
+        try {
+          const poolAddress = await aptos.view({
+            payload: {
+              function: "0x1::delegation_pool::get_owned_pool_address",
+              functionArguments: [v.addr],
+              typeArguments: [],
+            }
+          });
+          return { ...v, pool_addr: poolAddress[0] };
+        } catch (e) {
+          // If no pool address, return null or handle as needed
+          return { ...v, pool_addr: null };
+        }
+      }));
+
+      // Filter to only those that have a delegation pool (as required by delegation_pool functions)
+      setValidators(validatorsWithPools.filter(v => v.pool_addr !== null));
     } catch (e) {
       console.error("Error fetching validators:", e);
     } finally {
@@ -469,10 +552,15 @@ function App() {
           </div>
         </div>
 
-        {/* 2. Actions List */}
+        {/* 2. Faucet Section */}
+        <div style={{ width: '100%', maxWidth: '800px', marginBottom: '40px' }}>
+          <h3>2. Faucet (Get Test APT)</h3>
+          <Faucet address={derivedAddress} onSuccess={fetchAccountData} />
+        </div>
+
+        {/* 3. Actions List */}
         <div style={{ width: '100%', maxWidth: '800px' }}>
-          <h3>2. Execute Action</h3>
-          
+          <h3>3. Transactions</h3>
           <TransferAptos submitTransaction={submitTransaction} />
           <RegisterCoin submitTransaction={submitTransaction} />
           <TransferCoin submitTransaction={submitTransaction} />
@@ -481,14 +569,14 @@ function App() {
             <h3 style={{ color: '#2563eb' }}>Staking & Rewards</h3>
           </div>
 
-          <UnlockStake submitTransaction={submitTransaction} validators={validators} />
-          <WithdrawStake submitTransaction={submitTransaction} validators={validators} />
           <Stake 
             submitTransaction={submitTransaction} 
             validators={validators} 
             fetching={fetchingValidators}
             fetchValidators={fetchValidators}
           />
+          <WithdrawStake submitTransaction={submitTransaction} validators={validators} />
+          <UnlockStake submitTransaction={submitTransaction} validators={validators} />
         </div>
 
         {/* Network Info */}
