@@ -193,7 +193,7 @@ const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () 
   const handleExecute = async () => {
     if (!address) throw new Error("No address derived.");
     
-    const faucetUrl = `http://120.26.182.36:8081/mint?amount=${amount}&address=${address}`;
+    const faucetUrl = `${CUSTOM_NODE_URL}/faucet/mint?amount=${amount}&address=${address}`;
     const response = await fetch(faucetUrl, { method: 'POST' });
     
     if (!response.ok) {
