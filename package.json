@@ -10,11 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@aptos-labs/ts-sdk": "^6.0.0",
-    "@aptos-labs/wallet-adapter-ant-design": "^5.3.13",
-    "@aptos-labs/wallet-adapter-react": "^8.2.0",
+    "@scure/bip39": "^2.0.1",
+    "@topo/ts-sdk": "^6.2.0",
     "antd": "^6.2.2",
-    "petra-plugin-wallet-adapter": "^0.4.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

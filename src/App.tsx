@@ -1,16 +1,18 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Aptos, AptosConfig, Network, SignedTransaction, Ed25519Account, TransactionAuthenticatorEd25519, Deserializer } from "@aptos-labs/ts-sdk";
+import { Topo, TopoConfig, Network, SignedTransaction, Ed25519Account, TransactionAuthenticatorEd25519, Deserializer, NetworkToNodeAPI } from "@topo/ts-sdk";
+import { generateMnemonic } from '@scure/bip39';
+import { wordlist as english } from '@scure/bip39/wordlists/english.js';
 import './App.css';
 
 // Custom Network Configuration
-const CUSTOM_NODE_URL = "http://120.26.182.36:8080/v1";
-const CHAIN_ID = 164;
-
-const aptosConfig = new AptosConfig({ 
-  network: Network.CUSTOM,
-  fullnode: CUSTOM_NODE_URL,
+const topoConfig = new TopoConfig({ 
+  network: Network.DEVNET,
 });
-const aptos = new Aptos(aptosConfig);
+const topo = new Topo(topoConfig);
+
+const CUSTOM_NODE_URL = NetworkToNodeAPI[Network.DEVNET];
+
+// ... (ActionCard and other components remain the same)
 
 // --- Reusable Action Card Component ---
 interface ActionCardProps {
@@ -59,7 +61,14 @@ const ActionCard = ({ title, description, onExecute, children }: ActionCardProps
 
       {txHash && (
         <div style={{ marginTop: '10px', fontSize: '0.85em', wordBreak: 'break-all' }}>
-          Tx: <a href="#" onClick={(e) => e.preventDefault()}>{txHash}</a>
+          Tx: <a 
+            href={`https://explorer.devnet.topo.club/txn/${txHash}`} 
+            target="_blank" 
+            rel="noreferrer"
+            style={{ color: '#2563eb', textDecoration: 'underline' }}
+          >
+            {txHash}
+          </a>
         </div>
       )}
     </div>
@@ -237,7 +246,7 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
   fetchValidators: () => void 
 }) => {
   const [validator, setValidator] = useState("");
-  const [amount, setAmount] = useState("100000000"); // Default 1 TOP
+  const [amount, setAmount] = useState("1000000000"); // Default 10 TOP
 
   useEffect(() => {
     if (validators.length > 0 && !validator) {
@@ -423,9 +432,23 @@ const WithdrawStake = ({ submitTransaction, validators }: {
 // --- Main App Component ---
 
 function App() {
-  const [mnemonic, setMnemonic] = useState<string>(() => {
-    return localStorage.getItem('aptos_mnemonic') || "hindrance knot logic game decrease owner equals over history chuckle strip save";
-  });
+  const [mnemonic, setMnemonic] = useState<string>("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem('topo_mnemonic');
+    if (saved) {
+      setMnemonic(saved);
+    } else {
+      setMnemonic(generateMnemonic(english));
+    }
+  }, []);
+
+  const handleRegenerateMnemonic = () => {
+    if (window.confirm("Generate a new mnemonic? Current one will be lost if not backed up.")) {
+      setMnemonic(generateMnemonic(english));
+    }
+  };
+
   const [derivedAddress, setDerivedAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [networkInfo, setNetworkInfo] = useState<any>(null);
@@ -436,13 +459,13 @@ function App() {
 
   // Persist mnemonic to localStorage
   useEffect(() => {
-    localStorage.setItem('aptos_mnemonic', mnemonic);
+    localStorage.setItem('topo_mnemonic', mnemonic);
   }, [mnemonic]);
 
   const fetchValidators = async () => {
     setFetchingValidators(true);
     try {
-      const resource = await aptos.getAccountResource({
+      const resource = await topo.getAccountResource({
         accountAddress: "0x1",
         resourceType: "0x1::stake::ValidatorSet",
       });
@@ -451,7 +474,7 @@ function App() {
       // Fetch pool addresses for each validator
       const validatorsWithPools = await Promise.all(activeValidators.map(async (v: any) => {
         try {
-          const poolAddress = await aptos.view({
+          const poolAddress = await topo.view({
             payload: {
               function: "0x1::delegation_pool::get_owned_pool_address",
               functionArguments: [v.addr],
@@ -496,7 +519,7 @@ function App() {
     if (!account) throw new Error("Invalid mnemonic or account not derived.");
 
     // 1. Build Transaction
-    const transaction = await aptos.transaction.build.simple({
+    const transaction = await topo.transaction.build.simple({
       sender: account.accountAddress,
       data: entryFunctionData,
     });
@@ -540,7 +563,7 @@ function App() {
     const pendingTransaction = await fetchResponse.json();
     console.log("Transaction submitted:", pendingTransaction);
     
-    await aptos.waitForTransaction({ transactionHash: pendingTransaction.hash });
+    await topo.waitForTransaction({ transactionHash: pendingTransaction.hash });
     
     // Refresh balance after successful transaction
     fetchAccountData();
@@ -553,7 +576,7 @@ function App() {
     if (account) {
       setDerivedAddress(account.accountAddress.toString());
       try {
-        const amt = await aptos.getAccountAPTAmount({ accountAddress: account.accountAddress });
+        const amt = await topo.getAccountAPTAmount({ accountAddress: account.accountAddress });
         setBalance(amt.toString());
       } catch (e) {
         setBalance("0");
@@ -568,7 +591,8 @@ function App() {
     fetchAccountData();
     const fetchNetworkInfo = async () => {
       try {
-        const info = await aptos.getLedgerInfo();
+        const info = await topo.getLedgerInfo();
+        console.log('network info', info);
         setNetworkInfo(info);
       } catch (e) {
         console.error("Error fetching network info", e);
@@ -581,7 +605,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Topo Functional Examples</h1>
-        <p style={{ fontSize: "0.8em" }}>Chain ID: {CHAIN_ID} | Node: {CUSTOM_NODE_URL}</p>
+        <p style={{ fontSize: "0.8em" }}>Chain ID: {networkInfo?.chain_id || "..."} | Node: {CUSTOM_NODE_URL}</p>
 
         {/* 1. Account Config */}
         <div className="card full-width">
@@ -591,10 +615,32 @@ function App() {
             onChange={(e) => setMnemonic(e.target.value)}
             rows={2}
             placeholder="Enter mnemonic phrase..."
-            style={{ width: "100%", padding: "8px", fontSize: "0.9em" }}
+            style={{ width: "100%", padding: "8px", fontSize: "0.9em", marginBottom: "10px" }}
           />
+          <div style={{ textAlign: "right", marginBottom: "10px" }}>
+            <button 
+              onClick={handleRegenerateMnemonic}
+              style={{ padding: "5px 12px", fontSize: "0.85em", backgroundColor: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db" }}
+            >
+              🔄 Generate New Mnemonic
+            </button>
+          </div>
           <div style={{ marginTop: "10px", textAlign: "left" }}>
-            <p><strong>Derived Address:</strong> <code style={{ fontSize: "0.9em" }}>{derivedAddress || "Invalid Mnemonic"}</code></p>
+            <p>
+              <strong>Derived Address:</strong>{" "}
+              {derivedAddress ? (
+                <a 
+                  href={`https://explorer.devnet.topo.club/account/${derivedAddress}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  style={{ fontSize: "0.9em", color: '#2563eb', fontFamily: 'monospace' }}
+                >
+                  {derivedAddress}
+                </a>
+              ) : (
+                "Invalid Mnemonic"
+              )}
+            </p>
             <p><strong>TOP Balance:</strong> {balance !== null ? (Number(balance) / 100_000_000).toFixed(8) : "..."} TOP</p>
           </div>
         </div>
