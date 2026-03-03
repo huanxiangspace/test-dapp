@@ -79,7 +79,7 @@ const ActionCard = ({ title, description, onExecute, children }: ActionCardProps
 
 const TransferAptos = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
   const [receiver, setReceiver] = useState("0x943afee6808b7a7722be33278eb186e2ac0d0310b96f0478ed461dd97ccd9bea");
-  const [amount, setAmount] = useState("100000000"); // Default 1 TOP
+  const [amount, setAmount] = useState("100000000"); // Default 1 TOPO
 
   const handleExecute = async () => {
     return await submitTransaction({
@@ -91,8 +91,8 @@ const TransferAptos = ({ submitTransaction }: { submitTransaction: (data: any) =
 
   return (
     <ActionCard 
-      title="Transfer TOP" 
-      description="Transfers TOP. Auto-creates account if it doesn't exist."
+      title="Transfer TOPO" 
+      description="Transfers TOPO. Auto-creates account if it doesn't exist."
       onExecute={handleExecute}
     >
       <div className="form-group">
@@ -109,7 +109,7 @@ const TransferAptos = ({ submitTransaction }: { submitTransaction: (data: any) =
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -144,7 +144,7 @@ const RegisterCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
 
 const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
   const [receiver, setReceiver] = useState("0x943afee6808b7a7722be33278eb186e2ac0d0310b96f0478ed461dd97ccd9bea");
-  const [amount, setAmount] = useState("100000000"); // Default 1 TOP
+  const [amount, setAmount] = useState("100000000"); // Default 1 TOPO
   const [coinType, setCoinType] = useState("0x1::aptos_coin::AptosCoin");
 
   const handleExecute = async () => {
@@ -175,7 +175,7 @@ const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -188,7 +188,7 @@ const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
 };
 
 const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () => void }) => {
-  const [amount, setAmount] = useState("1000000000"); // Default 10 TOP
+  const [amount, setAmount] = useState("1000000000"); // Default 10 TOPO
 
   const handleExecute = async () => {
     if (!address) throw new Error("No address derived.");
@@ -202,19 +202,19 @@ const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () 
     }
     
     // Faucet usually returns transaction hashes as JSON array or text
-    const data = await response.text();
+    const data = await response.json();
     console.log("Faucet response:", data);
     
     // Refresh balance
     onSuccess();
     
-    return "Faucet request submitted successfully.";
+    return data[0];
   };
 
   return (
     <ActionCard 
       title="Topo Faucet" 
-      description="Get test TOP for your account from the network faucet."
+      description="Get test TOPO for your account from the network faucet."
       onExecute={handleExecute}
     >
       <div className="form-group">
@@ -231,7 +231,7 @@ const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () 
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
   fetchValidators: () => void 
 }) => {
   const [validator, setValidator] = useState("");
-  const [amount, setAmount] = useState("1000000000"); // Default 10 TOP
+  const [amount, setAmount] = useState("1000000000"); // Default 10 TOPO
 
   useEffect(() => {
     if (validators.length > 0 && !validator) {
@@ -273,8 +273,8 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
 
   return (
     <ActionCard 
-      title="Stake TOP (Delegation)" 
-      description="Select a validator node and delegate your TOP to start earning rewards."
+      title="Stake TOPO (Delegation)" 
+      description="Select a validator node and delegate your TOPO to start earning rewards."
       onExecute={handleExecute}
     >
       <div className="form-group">
@@ -311,7 +311,7 @@ const Stake = ({ submitTransaction, validators, fetching, fetchValidators }: {
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -343,8 +343,8 @@ const UnlockStake = ({ submitTransaction, validators }: {
 
   return (
     <ActionCard 
-      title="Unstake TOP (Unlock)" 
-      description="Unstake your TOP. It will enter a lockup period before it can be withdrawn."
+      title="Unstake TOPO (Unlock)" 
+      description="Unstake your TOPO. It will enter a lockup period before it can be withdrawn."
       onExecute={handleExecute}
     >
       <div className="form-group">
@@ -366,7 +366,7 @@ const UnlockStake = ({ submitTransaction, validators }: {
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -398,8 +398,8 @@ const WithdrawStake = ({ submitTransaction, validators }: {
 
   return (
     <ActionCard 
-      title="Withdraw TOP" 
-      description="Withdraw your unlocked TOP back to your wallet."
+      title="Withdraw TOPO" 
+      description="Withdraw your unlocked TOPO back to your wallet."
       onExecute={handleExecute}
     >
       <div className="form-group">
@@ -421,7 +421,7 @@ const WithdrawStake = ({ submitTransaction, validators }: {
             style={{ flex: 1 }}
           />
           <div style={{ minWidth: '100px', textAlign: 'right', fontWeight: 'bold' }}>
-            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOP
+            {(Number(amount || 0) / 100_000_000).toFixed(8)} TOPO
           </div>
         </div>
       </div>
@@ -641,13 +641,13 @@ function App() {
                 "Invalid Mnemonic"
               )}
             </p>
-            <p><strong>TOP Balance:</strong> {balance !== null ? (Number(balance) / 100_000_000).toFixed(8) : "..."} TOP</p>
+            <p><strong>TOPO Balance:</strong> {balance !== null ? (Number(balance) / 100_000_000).toFixed(8) : "..."} TOPO</p>
           </div>
         </div>
 
         {/* 2. Faucet Section */}
         <div style={{ width: '100%', maxWidth: '800px', marginBottom: '40px' }}>
-          <h3>2. Faucet (Get Test TOP)</h3>
+          <h3>2. Faucet (Get Test TOPO)</h3>
           <Faucet address={derivedAddress} onSuccess={fetchAccountData} />
         </div>
 
