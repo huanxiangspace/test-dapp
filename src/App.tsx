@@ -77,13 +77,13 @@ const ActionCard = ({ title, description, onExecute, children }: ActionCardProps
 
 // --- Specific Action Components ---
 
-const TransferAptos = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
+const TransferTopo = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
   const [receiver, setReceiver] = useState("0x943afee6808b7a7722be33278eb186e2ac0d0310b96f0478ed461dd97ccd9bea");
   const [amount, setAmount] = useState("100000000"); // Default 1 TOPO
 
   const handleExecute = async () => {
     return await submitTransaction({
-      function: "0x1::aptos_account::transfer",
+      function: "0x1::topo_account::transfer",
       functionArguments: [receiver, parseInt(amount)],
       typeArguments: [],
     });
@@ -118,7 +118,7 @@ const TransferAptos = ({ submitTransaction }: { submitTransaction: (data: any) =
 };
 
 const RegisterCoin = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
-  const [coinType, setCoinType] = useState("0x1::aptos_coin::AptosCoin");
+  const [coinType, setCoinType] = useState("0x1::topo_coin::TopoCoin");
 
   const handleExecute = async () => {
     return await submitTransaction({
@@ -145,7 +145,7 @@ const RegisterCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
 const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
   const [receiver, setReceiver] = useState("0x943afee6808b7a7722be33278eb186e2ac0d0310b96f0478ed461dd97ccd9bea");
   const [amount, setAmount] = useState("100000000"); // Default 1 TOPO
-  const [coinType, setCoinType] = useState("0x1::aptos_coin::AptosCoin");
+  const [coinType, setCoinType] = useState("0x1::topo_coin::TopoCoin");
 
   const handleExecute = async () => {
     return await submitTransaction({
@@ -576,7 +576,7 @@ function App() {
     if (account) {
       setDerivedAddress(account.accountAddress.toString());
       try {
-        const amt = await topo.getAccountAPTAmount({ accountAddress: account.accountAddress });
+        const amt = await topo.getBalance({ accountAddress: account.accountAddress, asset: "0x1::topo_coin::TopoCoin" });
         setBalance(amt.toString());
       } catch (e) {
         setBalance("0");
@@ -655,7 +655,7 @@ function App() {
         <div style={{ width: '100%', maxWidth: '800px' }}>
           <h3>3. Transactions</h3>
           
-          <TransferAptos submitTransaction={submitTransaction} />
+          <TransferTopo submitTransaction={submitTransaction} />
           <RegisterCoin submitTransaction={submitTransaction} />
           <TransferCoin submitTransaction={submitTransaction} />
           
