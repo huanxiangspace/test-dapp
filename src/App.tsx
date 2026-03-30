@@ -187,13 +187,20 @@ const TransferCoin = ({ submitTransaction }: { submitTransaction: (data: any) =>
   );
 };
 
-const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () => void }) => {
+const Faucet = ({ address: initialAddress, onSuccess }: { address: string | null, onSuccess: () => void }) => {
+  const [targetAddress, setTargetAddress] = useState(initialAddress || "");
   const [amount, setAmount] = useState("1000000000"); // Default 10 TOPO
 
+  useEffect(() => {
+    if (initialAddress && !targetAddress) {
+      setTargetAddress(initialAddress);
+    }
+  }, [initialAddress]);
+
   const handleExecute = async () => {
-    if (!address) throw new Error("No address derived.");
+    if (!targetAddress) throw new Error("Please enter a target address.");
     
-    const faucetUrl = `${CUSTOM_NODE_URL}/faucet/mint?amount=${amount}&address=${address}`;
+    const faucetUrl = `${CUSTOM_NODE_URL}/faucet/mint?amount=${amount}&address=${targetAddress}`;
     const response = await fetch(faucetUrl, { method: 'POST' });
     
     if (!response.ok) {
@@ -205,8 +212,10 @@ const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () 
     const data = await response.json();
     console.log("Faucet response:", data);
     
-    // Refresh balance
-    onSuccess();
+    // Refresh balance if the target address matches the derived address
+    if (targetAddress === initialAddress) {
+      onSuccess();
+    }
     
     return data[0];
   };
@@ -219,7 +228,12 @@ const Faucet = ({ address, onSuccess }: { address: string | null, onSuccess: () 
     >
       <div className="form-group">
         <label>Target Address:</label>
-        <input type="text" value={address || ""} disabled style={{ backgroundColor: '#f5f5f5' }} />
+        <input 
+          type="text" 
+          value={targetAddress} 
+          onChange={(e) => setTargetAddress(e.target.value)} 
+          placeholder="0x..."
+        />
       </div>
       <div className="form-group">
         <label>Amount (Octas):</label>
