@@ -443,6 +443,105 @@ const WithdrawStake = ({ submitTransaction, validators }: {
   );
 };
 
+const CreateCollection = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
+  const [name, setName] = useState("My Awesome Collection");
+  const [description, setDescription] = useState("A collection of unique Topo NFTs");
+  const [uri, setUri] = useState("https://gateway.pinata.cloud/ipfs/QmZ4tDuR2vnVAnT7f6UnvTC9u7z7Vw9Q3x5K7n8m4j7y8a");
+
+  const handleExecute = async () => {
+    return await submitTransaction({
+      function: "0x4::topo_token::create_collection",
+      functionArguments: [
+        description,
+        10000, // max supply
+        name,
+        uri,
+        true, // mutable_description
+        true, // mutable_royalty
+        true, // mutable_uri
+        true, // mutable_token_description
+        true, // mutable_token_name
+        true, // mutable_token_properties
+        true, // mutable_token_uri
+        true, // tokens_burnable_by_creator
+        true, // tokens_freezable_by_creator
+        0,    // royalty_numerator
+        100   // royalty_denominator
+      ],
+      typeArguments: [],
+    });
+  };
+
+  return (
+    <ActionCard 
+      title="Create NFT Collection" 
+      description="Create a new collection to group your NFTs. URI can be an image link or metadata JSON."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <label>Collection Name:</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Description:</label>
+        <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Collection Image/URI:</label>
+        <input type="text" value={uri} onChange={(e) => setUri(e.target.value)} placeholder="https://... (Image Link)" />
+      </div>
+    </ActionCard>
+  );
+};
+
+const MintNFT = ({ submitTransaction }: { submitTransaction: (data: any) => Promise<string> }) => {
+  const [collection, setCollection] = useState("My Awesome Collection");
+  const [name, setName] = useState("Topo NFT #1");
+  const [description, setDescription] = useState("My first NFT on Topo");
+  const [uri, setUri] = useState("https://gateway.pinata.cloud/ipfs/QmZ4tDuR2vnVAnT7f6UnvTC9u7z7Vw9Q3x5K7n8m4j7y8a");
+
+  const handleExecute = async () => {
+    return await submitTransaction({
+      function: "0x4::topo_token::mint",
+      functionArguments: [
+        collection,
+        description,
+        name,
+        uri,
+        [], // property keys
+        [], // property types
+        []  // property values
+      ],
+      typeArguments: [],
+    });
+  };
+
+  return (
+    <ActionCard 
+      title="Mint NFT" 
+      description="Mint a new NFT. URI should be the image link for the NFT."
+      onExecute={handleExecute}
+    >
+      <div className="form-group">
+        <label>Collection Name:</label>
+        <input type="text" value={collection} onChange={(e) => setCollection(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Token Name:</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Description:</label>
+        <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Token Image Link (URI):</label>
+        <input type="text" value={uri} onChange={(e) => setUri(e.target.value)} placeholder="https://... (Image Link)" />
+      </div>
+    </ActionCard>
+  );
+};
+
 // --- Main App Component ---
 
 function App() {
@@ -672,6 +771,12 @@ function App() {
           <TransferTopo submitTransaction={submitTransaction} />
           <RegisterCoin submitTransaction={submitTransaction} />
           <TransferCoin submitTransaction={submitTransaction} />
+
+          <div style={{ margin: '40px 0 20px 0', borderTop: '2px solid #ddd', paddingTop: '20px' }}>
+            <h3 style={{ color: '#2563eb' }}>NFTs (Digital Assets)</h3>
+          </div>
+          <CreateCollection submitTransaction={submitTransaction} />
+          <MintNFT submitTransaction={submitTransaction} />
           
           <div style={{ margin: '40px 0 20px 0', borderTop: '2px solid #ddd', paddingTop: '20px' }}>
             <h3 style={{ color: '#2563eb' }}>Staking & Rewards</h3>
